@@ -99,7 +99,8 @@
                         </div>
                         <button onclick="handleLogin()" class="btn btn-primary w-100">Login</button>
                         <div class="mt-3 text-muted small text-center">
-                            <p>Default Users:<br>1. <b>admin</b> (pass: 1234)<br>2. <b>ali</b> (pass: abcd)</p>
+                            <!-- Removed credentials display for security -->
+                            <p><i>Access is controlled by the server.</i></p>
                         </div>
                         <small class="text-danger mt-2 d-block text-center" id="login-error"></small>
                     </div>
@@ -112,7 +113,7 @@
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h3 class="text-primary">Dashboard Aset</h3>
                 
-                <!-- NEW: ZOOM & MAX CONTROLS -->
+                <!-- ZOOM & MAX CONTROLS -->
                 <div class="btn-group shadow-sm">
                     <button class="btn btn-light border" onclick="changeFontSize(-0.1)" title="Decrease Font">➖</button>
                     <button class="btn btn-light border" onclick="changeFontSize(0.1)" title="Increase Font">➕</button>
@@ -275,26 +276,20 @@
         let allData = [];
         let filteredData = [];
         let showAllRows = false;
+        
+        // STORE CREDENTIALS IN MEMORY (Not hardcoded in HTML)
         let currentUser = "";
+        let currentPass = "";
         
         // --- ZOOM & MAX VARIABLES ---
         let currentFontSize = 0.9;
         let isMaxMode = false;
 
-        const authorizedUsers = {
-            "suhardi": "admin2026",
-            "jefrisani": "admin2026"
-            
-        };
-
         // --- NEW: ZOOM & MAX FUNCTIONS ---
         function changeFontSize(delta) {
             currentFontSize += delta;
-            // Limits: Min 0.5rem, Max 2.0rem
             if (currentFontSize < 0.5) currentFontSize = 0.5;
             if (currentFontSize > 2.0) currentFontSize = 2.0;
-            
-            // Apply to CSS Variable
             document.documentElement.style.setProperty('--table-font-size', currentFontSize.toFixed(1) + 'rem');
         }
 
@@ -305,65 +300,91 @@
             const btn = document.getElementById('btn-max');
 
             if (isMaxMode) {
-                // Activate Max Mode
                 container.classList.add('container-max');
                 table.classList.add('force-nowrap');
-                
-                // Auto-shrink font to fit more data
                 currentFontSize = 0.7; 
                 document.documentElement.style.setProperty('--table-font-size', '0.7rem');
-                
-                btn.classList.replace('btn-dark', 'btn-success'); // Change button color
+                btn.classList.replace('btn-dark', 'btn-success');
             } else {
-                // Revert to Normal Mode
                 container.classList.remove('container-max');
                 table.classList.remove('force-nowrap');
-                
-                // Restore default font
                 currentFontSize = 0.9;
                 document.documentElement.style.setProperty('--table-font-size', '0.9rem');
-
                 btn.classList.replace('btn-success', 'btn-dark');
             }
         }
 
-        // --- LOGIN LOGIC ---
+        // --- SECURE LOGIN LOGIC ---
         function handleLogin() {
             const u = document.getElementById('login-user').value.trim();
             const p = document.getElementById('login-pass').value.trim();
 
-            if (authorizedUsers.hasOwnProperty(u) && authorizedUsers[u] == p) {
-                currentUser = u;
-                document.getElementById('display-username').innerText = u;
-                document.getElementById('login-page').classList.add('hidden');
-                document.getElementById('dashboard-page').classList.remove('hidden');
-                fetchData();
-            } else {
-                document.getElementById('login-error').innerText = "Username atau Password salah!";
+            if (!u || !p) {
+                document.getElementById('login-error').innerText = "Sila masukkan username dan password.";
+                return;
             }
+
+            // Temporarily store them to try fetching data
+            currentUser = u;
+            currentPass = p;
+            
+            document.getElementById('login-error').innerText = "Mengsahihkan...";
+            document.getElementById('loader').classList.remove('hidden');
+
+            // Attempt to fetch data. If this fails, login is invalid.
+            fetchData(true); 
         }
 
         function logout() {
             location.reload();
         }
 
-        // --- DATA FETCHING ---
-        function fetchData() {
-            document.getElementById('loader').classList.remove('hidden');
-            
-            fetch(SCRIPT_URL)
+        // --- SECURE DATA FETCHING ---
+        // isLoginAttempt: boolean, true if called from login button
+        function fetchData(isLoginAttempt = false) {
+            // Append credentials to the URL for Backend Validation
+            // Note: In a real production app, use POST for this. For GAS Simple Triggers, GET is easiest.
+            const urlWithAuth = `${SCRIPT_URL}?u=${encodeURIComponent(currentUser)}&p=${encodeURIComponent(currentPass)}`;
+
+            fetch(urlWithAuth)
                 .then(res => res.text())
                 .then(text => {
                     try {
                         const data = JSON.parse(text);
+                        
+                        // Check for Server Error (Unauthorized)
+                        if (data.error === "UNAUTHORIZED") {
+                            throw new Error("UNAUTHORIZED");
+                        }
+
+                        // Success!
                         allData = data;
                         filteredData = data;
                         renderTable();
+                        
+                        // If we are logging in, switch screens now
+                        if (isLoginAttempt) {
+                            document.getElementById('display-username').innerText = currentUser;
+                            document.getElementById('login-page').classList.add('hidden');
+                            document.getElementById('dashboard-page').classList.remove('hidden');
+                        }
+                        
                         document.getElementById('loader').classList.add('hidden');
+
                     } catch (e) {
-                        alert("Error: Data returned is not valid JSON. Check permissions.");
-                        console.error("Raw Response:", text);
+                        console.error("Auth Error:", e);
                         document.getElementById('loader').classList.add('hidden');
+                        
+                        if (e.message === "UNAUTHORIZED") {
+                            if (isLoginAttempt) {
+                                document.getElementById('login-error').innerText = "Username atau Password salah!";
+                            } else {
+                                alert("Sesi tamat atau tidak sah. Sila login semula.");
+                                logout();
+                            }
+                        } else {
+                            alert("Ralat Sistem: " + text);
+                        }
                     }
                 })
                 .catch(err => {
@@ -493,6 +514,10 @@
             const isNew = id === "";
             
             const payload = {
+                // SEND CREDENTIALS WITH UPDATE
+                u: currentUser,
+                p: currentPass,
+                
                 action: isNew ? "add" : "update",
                 id: id,
                 nama: document.getElementById('inp-nama').value,
@@ -512,6 +537,11 @@
             })
             .then(response => response.json())
             .then(data => {
+                if(data.error === "UNAUTHORIZED") {
+                    alert("Sesi tamat. Sila login semula.");
+                    logout();
+                    return;
+                }
                 alert("Data berjaya disimpan!");
                 fetchData(); 
                 document.getElementById('search-input').value = ""; 
