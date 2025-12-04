@@ -6,20 +6,47 @@
     <title>Sistem Pengurusan Aset ICT</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body { background-color: #f0f2f5; }
+        body { background-color: #f0f2f5; font-size: 0.9rem; }
         
-        /* FIX: Use 95% width to prevent truncation */
-        .container-fluid { max-width: 95%; margin-top: 30px; }
+        /* FULL WIDTH CONTAINER */
+        .container-fluid { padding: 20px; }
         
         .hidden { display: none !important; }
-        .card { box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .loading { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); z-index: 9999; display: flex; justify-content: center; align-items: center; }
+        .card { box-shadow: 0 4px 6px rgba(0,0,0,0.1); border: none; }
         
-        /* FIX: Make table text smaller and prevent wrapping for better fit */
-        table th, table td { 
-            white-space: nowrap; 
-            font-size: 0.9rem; 
-            vertical-align: middle;
+        /* LOADING SPINNER */
+        .loading { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); z-index: 9999; display: flex; justify-content: center; align-items: center; }
+
+        /* --- TABLE FIXES --- */
+        .table-responsive {
+            max-height: 70vh; /* Set height so vertical scroll works */
+            overflow-y: auto;
+            border: 1px solid #ddd;
+        }
+
+        /* Sticky Header: Keeps header visible while scrolling down */
+        thead th {
+            position: sticky;
+            top: 0;
+            background-color: #212529 !important; /* Dark header color */
+            color: white;
+            z-index: 1;
+            white-space: nowrap; /* Keep headers on one line */
+        }
+
+        /* Column Formatting */
+        td { vertical-align: middle; }
+        
+        /* Allow these columns to WRAP text so it's not cut off */
+        .col-wrap {
+            white-space: normal !important;
+            min-width: 150px; /* Force minimum width to be readable */
+            max-width: 250px;
+        }
+
+        /* Keep these columns on ONE LINE */
+        .col-nowrap {
+            white-space: nowrap;
         }
     </style>
 </head>
@@ -39,46 +66,54 @@
                     <div class="card-header bg-primary text-white text-center">
                         <h4>Login Aset ICT</h4>
                     </div>
-                    <div class="card-body">
+                    <div class="card-body p-4">
                         <div class="mb-3">
                             <label>Username</label>
                             <input type="text" id="login-user" class="form-control" placeholder="admin">
                         </div>
                         <div class="mb-3">
                             <label>Password</label>
-                            <input type="password" id="login-pass" class="form-control" placeholder="1234">
+                            <input type="password" id="login-pass" class="form-control" placeholder="password">
                         </div>
                         <button onclick="handleLogin()" class="btn btn-primary w-100">Login</button>
-                        <small class="text-danger mt-2 d-block" id="login-error"></small>
+                        <div class="mt-3 text-muted small text-center">
+                            <p>Default Users:<br>1. <b>admin</b> (pass: 1234)<br>2. <b>ali</b> (pass: abcd)</p>
+                        </div>
+                        <small class="text-danger mt-2 d-block text-center" id="login-error"></small>
                     </div>
                 </div>
             </div>
         </div>
 
         <div id="dashboard-page" class="hidden">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2>Dashboard Aset</h2>
-                <div>
-                    <button onclick="showAddForm()" class="btn btn-success">+ Tambah Aset Baharu</button>
-                    <button onclick="logout()" class="btn btn-secondary">Logout</button>
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h3 class="text-primary">Dashboard Aset</h3>
+                <div class="d-flex gap-2 align-items-center">
+                    <span class="badge bg-info text-dark">User: <span id="display-username"></span></span>
+                    <button onclick="showAddForm()" class="btn btn-success btn-sm">+ Tambah Aset</button>
+                    <button onclick="logout()" class="btn btn-secondary btn-sm">Logout</button>
                 </div>
             </div>
 
             <div class="card">
-                <div class="card-header bg-white">
-                    <div class="row">
-                        <div class="col-md-6">
+                <div class="card-header bg-white py-3">
+                    <div class="row g-2">
+                        <div class="col-md-5">
                             <div class="input-group">
-                                <span class="input-group-text bg-light">🔍 Cari</span>
-                                <input type="text" id="search-input" class="form-control" placeholder="Taip nama, no siri, atau aset..." onkeyup="handleSearch()">
+                                <span class="input-group-text bg-light border-end-0">🔍</span>
+                                <input type="text" id="search-input" class="form-control border-start-0" placeholder="Cari nama, siri, model..." onkeyup="handleSearch()">
                             </div>
+                        </div>
+                        <div class="col-md-7 text-end align-self-center">
+                            <small class="text-muted" id="record-count"></small>
                         </div>
                     </div>
                 </div>
-                <div class="card-body">
+                
+                <div class="card-body p-0">
                     <div class="table-responsive">
-                        <table class="table table-bordered table-striped table-hover table-sm">
-                            <thead class="table-dark">
+                        <table class="table table-bordered table-hover table-sm mb-0">
+                            <thead>
                                 <tr>
                                     <th>Bil</th>
                                     <th>Nama Pengguna</th>
@@ -90,105 +125,107 @@
                                     <th>Status</th>
                                     <th>Pengguna Dahulu</th>
                                     <th>Tarikh Kemaskini</th>
-                                    <th>Tindakan</th>
+                                    <th class="text-center">Tindakan</th>
                                 </tr>
                             </thead>
                             <tbody id="data-table-body">
                                 </tbody>
                         </table>
                     </div>
-                    
-                    <div class="d-flex justify-content-between align-items-center mt-3">
-                        <small class="text-muted" id="record-count"></small>
-                        <button id="btn-show-all" onclick="toggleShowAll()" class="btn btn-outline-primary">Show All Rows</button>
-                    </div>
+                </div>
+                <div class="card-footer bg-white">
+                     <button id="btn-show-all" onclick="toggleShowAll()" class="btn btn-outline-primary btn-sm w-100">Show All Rows</button>
                 </div>
             </div>
         </div>
 
         <div id="form-page" class="hidden">
-            <div class="container" style="max-width: 900px;"> <div class="card">
-                    <div class="card-header bg-info text-white">
-                        <h4 id="form-title">Kemaskini Rekod</h4>
-                    </div>
-                    <div class="card-body">
-                        <form id="asset-form" onsubmit="handleSubmit(event)">
-                            <input type="hidden" id="asset-id">
-                            
-                            <div class="row">
-                                <div class="col-md-6 mb-3">
-                                    <label>Nama Pengguna</label>
-                                    <input type="text" id="inp-nama" class="form-control" required>
+            <div class="row justify-content-center">
+                <div class="col-lg-8">
+                    <div class="card">
+                        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center">
+                            <h5 class="mb-0" id="form-title">Kemaskini Rekod</h5>
+                            <button onclick="showDashboard()" class="btn btn-close btn-close-white"></button>
+                        </div>
+                        <div class="card-body">
+                            <form id="asset-form" onsubmit="handleSubmit(event)">
+                                <input type="hidden" id="asset-id">
+                                
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label fw-bold">Nama Pengguna</label>
+                                        <input type="text" id="inp-nama" class="form-control" required>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label fw-bold">Jenis Aset ICT</label>
+                                        <select id="inp-jenis" class="form-select">
+                                            <option>Komputer</option>
+                                            <option>Laptop</option>
+                                            <option>Printer</option>
+                                            <option>Projektor</option>
+                                            <option>Pengimbas</option>
+                                            <option>Webcam</option>
+                                            <option>Lain-lain</option>
+                                        </select>
+                                    </div>
                                 </div>
-                                <div class="col-md-6 mb-3">
-                                    <label>Jenis-jenis Aset ICT</label>
-                                    <select id="inp-jenis" class="form-select">
-                                        <option>Komputer</option>
-                                        <option>Laptop</option>
-                                        <option>Printer</option>
-                                        <option>Projektor</option>
-                                        <option>Pengimbas</option>
-                                        <option>Webcam</option>
-                                        <option>Lain-lain</option>
+
+                                <div class="mb-3">
+                                    <label class="form-label fw-bold">Seksyen</label>
+                                    <select id="inp-seksyen" class="form-select">
+                                        <option>Pejabat Ketua Akauntan</option>
+                                        <option>Seksyen Pentadbiran dan Kewangan</option>
+                                        <option>Seksyen Perakaunan Pengurusan</option>
+                                        <option>Seksyen Akaun Sekolah (SAS)</option>
+                                        <option>Seksyen Pemantauan</option>
+                                        <option>Seksyen Perundingan</option>
+                                        <option>Seksyen Perakauan Kewangan</option>
                                     </select>
                                 </div>
-                            </div>
 
-                            <div class="mb-3">
-                                <label>Seksyen</label>
-                                <select id="inp-seksyen" class="form-select">
-                                    <option>Pejabat Ketua Akauntan</option>
-                                    <option>Seksyen Pentadbiran dan Kewangan</option>
-                                    <option>Seksyen Perakaunan Pengurusan</option>
-                                    <option>Seksyen Akaun Sekolah (SAS)</option>
-                                    <option>Seksyen Pemantauan</option>
-                                    <option>Seksyen Perundingan</option>
-                                    <option>Seksyen Perakauan Kewangan</option>
-                                </select>
-                            </div>
-
-                            <div class="row">
-                                <div class="col-md-4 mb-3">
-                                    <label>Nombor DHM</label>
-                                    <input type="text" id="inp-dhm" class="form-control">
+                                <div class="row">
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label fw-bold">Nombor DHM</label>
+                                        <input type="text" id="inp-dhm" class="form-control">
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label fw-bold">Nombor Siri</label>
+                                        <input type="text" id="inp-siri" class="form-control">
+                                    </div>
+                                    <div class="col-md-4 mb-3">
+                                        <label class="form-label fw-bold">Jenis Model</label>
+                                        <input type="text" id="inp-model" class="form-control">
+                                    </div>
                                 </div>
-                                <div class="col-md-4 mb-3">
-                                    <label>Nombor Siri</label>
-                                    <input type="text" id="inp-siri" class="form-control">
+
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label fw-bold">Status</label>
+                                        <select id="inp-status" class="form-select">
+                                            <option>Baharu</option>
+                                            <option>Dalam Keadaan Baik</option>
+                                            <option>Perlu Dibaiki</option>
+                                            <option>Perlu Disemak</option>
+                                            <option>Dalam Proses Pelupusan</option>
+                                            <option>Sewaan</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label fw-bold">Pengguna Sebelumnya</label>
+                                        <input type="text" id="inp-prevUser" class="form-control">
+                                    </div>
                                 </div>
-                                <div class="col-md-4 mb-3">
-                                    <label>Jenis Model</label>
-                                    <input type="text" id="inp-model" class="form-control">
+
+                                <div class="mb-3">
+                                    <label class="text-muted small">Tarikh kemaskini akan dijana automatik selepas simpan.</label>
                                 </div>
-                            </div>
 
-                            <div class="mb-3">
-                                <label>Status</label>
-                                <select id="inp-status" class="form-select">
-                                    <option>Baharu</option>
-                                    <option>Dalam Keadaan Baik</option>
-                                    <option>Perlu Dibaiki</option>
-                                    <option>Perlu Disemak</option>
-                                    <option>Dalam Proses Pelupusan</option>
-                                    <option>Sewaan</option>
-                                </select>
-                            </div>
-
-                            <div class="mb-3">
-                                <label>Nama pengguna sebelumnya</label>
-                                <input type="text" id="inp-prevUser" class="form-control">
-                            </div>
-
-                            <div class="mb-3">
-                                <label>Tarikh kemaskini (Auto)</label>
-                                <input type="text" class="form-control" value="Akan dijana oleh sistem..." disabled>
-                            </div>
-
-                            <div class="d-flex gap-2">
-                                <button type="submit" class="btn btn-success">Simpan</button>
-                                <button type="button" onclick="showDashboard()" class="btn btn-secondary">Batal</button>
-                            </div>
-                        </form>
+                                <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                                    <button type="button" onclick="showDashboard()" class="btn btn-secondary">Batal</button>
+                                    <button type="submit" class="btn btn-primary px-4">Simpan Rekod</button>
+                                </div>
+                            </form>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -198,21 +235,28 @@
 
     <script>
         // --- CONFIGURATION ---
-        const SCRIPT_URL = "194UdPqt6p2o0DJdJtuP8_UacggRIR6xvFqY709JAnSY"; // <--- REMEMBER TO PASTE URL HERE
+        const SCRIPT_URL = "194UdPqt6p2o0DJdJtuP8_UacggRIR6xvFqY709JAnSY"; 
         
         let allData = [];
         let filteredData = [];
         let showAllRows = false;
         let currentUser = "";
 
+        // --- 1. MULTI-USER CONFIGURATION ---
+        const authorizedUsers = {
+            "suhardi": "810107",
+            "jefrisani": "abcd1234"
+        };
+
         // --- LOGIN LOGIC ---
         function handleLogin() {
-            const u = document.getElementById('login-user').value;
-            const p = document.getElementById('login-pass').value;
+            const u = document.getElementById('login-user').value.trim();
+            const p = document.getElementById('login-pass').value.trim();
 
-            // CHANGE USERNAME/PASSWORD HERE
-            if(u == "suhardi" && p == "stmadmin2026") {
+            // Check if user exists in the list and password matches
+            if (authorizedUsers.hasOwnProperty(u) && authorizedUsers[u] === p) {
                 currentUser = u;
+                document.getElementById('display-username').innerText = u;
                 document.getElementById('login-page').classList.add('hidden');
                 document.getElementById('dashboard-page').classList.remove('hidden');
                 fetchData();
@@ -232,7 +276,7 @@
                 .then(res => res.json())
                 .then(data => {
                     allData = data;
-                    filteredData = data; // Initialize filtered with all data
+                    filteredData = data; 
                     renderTable();
                     document.getElementById('loader').classList.add('hidden');
                 })
@@ -242,7 +286,7 @@
                 });
         }
 
-        // --- SEARCH LOGIC (NEW) ---
+        // --- SEARCH LOGIC ---
         function handleSearch() {
             const query = document.getElementById('search-input').value.toLowerCase();
             
@@ -250,12 +294,13 @@
                 filteredData = allData;
             } else {
                 filteredData = allData.filter(row => {
-                    // Search in all columns
                     return Object.values(row).some(val => 
                         String(val).toLowerCase().includes(query)
                     );
                 });
             }
+            // Reset to show all found results immediately
+            showAllRows = true; 
             renderTable();
         }
 
@@ -266,45 +311,41 @@
             
             const isSearching = document.getElementById('search-input').value !== "";
             
-            // Logic: 
-            // 1. If searching, show all matching results (ignore limit).
-            // 2. If not searching, obey 'showAllRows' (either 5 or All).
+            // Logic: Show 5 rows default, unless Searching OR 'Show All' clicked
             let displayData;
-            
             if (isSearching) {
                 displayData = filteredData;
-                document.getElementById('btn-show-all').style.display = 'none'; // Hide button when searching
+                document.getElementById('btn-show-all').style.display = 'none';
             } else {
                 displayData = showAllRows ? filteredData : filteredData.slice(0, 5);
-                document.getElementById('btn-show-all').style.display = 'block'; // Show button
+                document.getElementById('btn-show-all').style.display = 'block';
                 document.getElementById('btn-show-all').innerText = showAllRows ? "Show Less (5 Rows)" : "Show All Rows";
             }
 
-            // Update Count Text
             document.getElementById('record-count').innerText = `Showing ${displayData.length} of ${filteredData.length} records`;
 
             if (displayData.length === 0) {
-                tbody.innerHTML = "<tr><td colspan='11' class='text-center'>Tiada rekod dijumpai.</td></tr>";
+                tbody.innerHTML = "<tr><td colspan='11' class='text-center py-4'>Tiada rekod dijumpai.</td></tr>";
                 return;
             }
 
             displayData.forEach(row => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td>${row['Bil']}</td>
-                    <td>${row['Nama Pengguna']}</td>
-                    <td>${row['Jenis-jenis Aset ICT']}</td>
-                    <td>${row['Seksyen']}</td>
-                    <td>${row['Nombor DHM']}</td>
-                    <td>${row['Nombor Siri']}</td>
-                    <td>${row['Jenis Model']}</td>
-                    <td>
+                    <td class="col-nowrap fw-bold">${row['Bil']}</td>
+                    <td class="col-wrap">${row['Nama Pengguna']}</td>
+                    <td class="col-wrap">${row['Jenis-jenis Aset ICT']}</td>
+                    <td class="col-wrap">${row['Seksyen']}</td>
+                    <td class="col-nowrap">${row['Nombor DHM']}</td>
+                    <td class="col-nowrap">${row['Nombor Siri']}</td>
+                    <td class="col-wrap">${row['Jenis Model']}</td>
+                    <td class="col-nowrap">
                         <span class="badge ${getStatusBadge(row['Status'])}">${row['Status']}</span>
                     </td>
-                    <td>${row['Nama pengguna sebelumnya']}</td>
-                    <td>${row['Tarikh kemaskini']}</td>
-                    <td>
-                        <button class="btn btn-sm btn-warning" onclick="showEditForm(${row['Bil']})">✏️</button>
+                    <td class="col-wrap text-muted">${row['Nama pengguna sebelumnya']}</td>
+                    <td class="col-nowrap small">${row['Tarikh kemaskini']}</td>
+                    <td class="col-nowrap text-center">
+                        <button class="btn btn-sm btn-outline-dark" onclick="showEditForm(${row['Bil']})">Edit</button>
                     </td>
                 `;
                 tbody.appendChild(tr);
@@ -313,8 +354,10 @@
 
         function getStatusBadge(status) {
             if(status === 'Baharu') return 'bg-success';
-            if(status === 'Perlu Dibaiki') return 'bg-danger';
-            if(status === 'Dalam Proses Pelupusan') return 'bg-dark';
+            if(status === 'Dalam Keadaan Baik') return 'bg-primary';
+            if(status === 'Perlu Dibaiki') return 'bg-warning text-dark';
+            if(status === 'Perlu Disemak') return 'bg-info text-dark';
+            if(status === 'Dalam Proses Pelupusan') return 'bg-danger';
             return 'bg-secondary';
         }
 
@@ -386,14 +429,13 @@
             .then(response => response.json())
             .then(data => {
                 alert("Data berjaya disimpan!");
-                // Reload data to see changes
                 fetchData(); 
-                document.getElementById('search-input').value = ""; // Clear search
+                document.getElementById('search-input').value = ""; 
                 showDashboard();
             })
             .catch(error => {
                 console.error(error);
-                alert("Permintaan dihantar. Sila refresh jika data tidak berubah.");
+                alert("Simpanan berjaya (GAS response). Refresh untuk lihat perubahan.");
                 fetchData();
                 showDashboard();
             });
