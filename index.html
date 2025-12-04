@@ -331,7 +331,7 @@
             const u = document.getElementById('login-user').value.trim();
             const p = document.getElementById('login-pass').value.trim();
 
-            if (authorizedUsers.hasOwnProperty(u) && authorizedUsers[u] == p) {
+            if (authorizedUsers.hasOwnProperty(u) && authorizedUsers[u] === p) {
                 currentUser = u;
                 document.getElementById('display-username').innerText = u;
                 document.getElementById('login-page').classList.add('hidden');
