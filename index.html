@@ -6,11 +6,21 @@
     <title>Sistem Pengurusan Aset ICT</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body { background-color: #f8f9fa; }
-        .container { max-width: 1200px; margin-top: 30px; }
+        body { background-color: #f0f2f5; }
+        
+        /* FIX: Use 95% width to prevent truncation */
+        .container-fluid { max-width: 95%; margin-top: 30px; }
+        
         .hidden { display: none !important; }
         .card { box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
         .loading { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); z-index: 9999; display: flex; justify-content: center; align-items: center; }
+        
+        /* FIX: Make table text smaller and prevent wrapping for better fit */
+        table th, table td { 
+            white-space: nowrap; 
+            font-size: 0.9rem; 
+            vertical-align: middle;
+        }
     </style>
 </head>
 <body>
@@ -21,7 +31,7 @@
         </div>
     </div>
 
-    <div class="container">
+    <div class="container-fluid">
 
         <div id="login-page" class="row justify-content-center">
             <div class="col-md-4">
@@ -55,9 +65,19 @@
             </div>
 
             <div class="card">
+                <div class="card-header bg-white">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="input-group">
+                                <span class="input-group-text bg-light">🔍 Cari</span>
+                                <input type="text" id="search-input" class="form-control" placeholder="Taip nama, no siri, atau aset..." onkeyup="handleSearch()">
+                            </div>
+                        </div>
+                    </div>
+                </div>
                 <div class="card-body">
                     <div class="table-responsive">
-                        <table class="table table-bordered table-striped table-hover">
+                        <table class="table table-bordered table-striped table-hover table-sm">
                             <thead class="table-dark">
                                 <tr>
                                     <th>Bil</th>
@@ -77,92 +97,99 @@
                                 </tbody>
                         </table>
                     </div>
-                    <button id="btn-show-all" onclick="toggleShowAll()" class="btn btn-outline-primary mt-2">Show All Rows</button>
+                    
+                    <div class="d-flex justify-content-between align-items-center mt-3">
+                        <small class="text-muted" id="record-count"></small>
+                        <button id="btn-show-all" onclick="toggleShowAll()" class="btn btn-outline-primary">Show All Rows</button>
+                    </div>
                 </div>
             </div>
         </div>
 
         <div id="form-page" class="hidden">
-            <div class="card">
-                <div class="card-header bg-info text-white">
-                    <h4 id="form-title">Kemaskini Rekod</h4>
-                </div>
-                <div class="card-body">
-                    <form id="asset-form" onsubmit="handleSubmit(event)">
-                        <input type="hidden" id="asset-id">
-                        
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
-                                <label>Nama Pengguna</label>
-                                <input type="text" id="inp-nama" class="form-control" required>
+            <div class="container" style="max-width: 900px;"> <div class="card">
+                    <div class="card-header bg-info text-white">
+                        <h4 id="form-title">Kemaskini Rekod</h4>
+                    </div>
+                    <div class="card-body">
+                        <form id="asset-form" onsubmit="handleSubmit(event)">
+                            <input type="hidden" id="asset-id">
+                            
+                            <div class="row">
+                                <div class="col-md-6 mb-3">
+                                    <label>Nama Pengguna</label>
+                                    <input type="text" id="inp-nama" class="form-control" required>
+                                </div>
+                                <div class="col-md-6 mb-3">
+                                    <label>Jenis-jenis Aset ICT</label>
+                                    <select id="inp-jenis" class="form-select">
+                                        <option>Komputer</option>
+                                        <option>Laptop</option>
+                                        <option>Printer</option>
+                                        <option>Projektor</option>
+                                        <option>Pengimbas</option>
+                                        <option>Webcam</option>
+                                        <option>Lain-lain</option>
+                                    </select>
+                                </div>
                             </div>
-                            <div class="col-md-6 mb-3">
-                                <label>Jenis-jenis Aset ICT</label>
-                                <select id="inp-jenis" class="form-select">
-                                    <option>Komputer</option>
-                                    <option>Laptop</option>
-                                    <option>Printer</option>
-                                    <option>Projektor</option>
-                                    <option>Pengimbas</option>
-                                    <option>Webcam</option>
-                                    <option>Lain-lain</option>
+
+                            <div class="mb-3">
+                                <label>Seksyen</label>
+                                <select id="inp-seksyen" class="form-select">
+                                    <option>Pejabat Ketua Akauntan</option>
+                                    <option>Seksyen Pentadbiran dan Kewangan</option>
+                                    <option>Seksyen Perakaunan Pengurusan</option>
+                                    <option>Seksyen Akaun Sekolah (SAS)</option>
+                                    <option>Seksyen Pemantauan</option>
+                                    <option>Seksyen Perundingan</option>
+                                    <option>Seksyen Perakauan Kewangan</option>
                                 </select>
                             </div>
-                        </div>
 
-                        <div class="mb-3">
-                            <label>Seksyen</label>
-                            <select id="inp-seksyen" class="form-select">
-                                <option>Pejabat Ketua Akauntan</option>
-                                <option>Seksyen Pentadbiran dan Kewangan</option>
-                                <option>Seksyen Perakaunan Pengurusan</option>
-                                <option>Seksyen Akaun Sekolah (SAS)</option>
-                                <option>Seksyen Pemantauan</option>
-                                <option>Seksyen Perundingan</option>
-                                <option>Seksyen Perakauan Kewangan</option>
-                            </select>
-                        </div>
-
-                        <div class="row">
-                            <div class="col-md-4 mb-3">
-                                <label>Nombor DHM</label>
-                                <input type="text" id="inp-dhm" class="form-control">
+                            <div class="row">
+                                <div class="col-md-4 mb-3">
+                                    <label>Nombor DHM</label>
+                                    <input type="text" id="inp-dhm" class="form-control">
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label>Nombor Siri</label>
+                                    <input type="text" id="inp-siri" class="form-control">
+                                </div>
+                                <div class="col-md-4 mb-3">
+                                    <label>Jenis Model</label>
+                                    <input type="text" id="inp-model" class="form-control">
+                                </div>
                             </div>
-                            <div class="col-md-4 mb-3">
-                                <label>Nombor Siri</label>
-                                <input type="text" id="inp-siri" class="form-control">
+
+                            <div class="mb-3">
+                                <label>Status</label>
+                                <select id="inp-status" class="form-select">
+                                    <option>Baharu</option>
+                                    <option>Dalam Keadaan Baik</option>
+                                    <option>Perlu Dibaiki</option>
+                                    <option>Perlu Disemak</option>
+                                    <option>Dalam Proses Pelupusan</option>
+                                    <option>Sewaan</option>
+                                </select>
                             </div>
-                            <div class="col-md-4 mb-3">
-                                <label>Jenis Model</label>
-                                <input type="text" id="inp-model" class="form-control">
+
+                            <div class="mb-3">
+                                <label>Nama pengguna sebelumnya</label>
+                                <input type="text" id="inp-prevUser" class="form-control">
                             </div>
-                        </div>
 
-                        <div class="mb-3">
-                            <label>Status</label>
-                            <select id="inp-status" class="form-select">
-                                <option>Baharu</option>
-                                <option>Dalam Keadaan Baik</option>
-                                <option>Perlu Dibaiki</option>
-                                <option>Perlu Disemak</option>
-                                <option>Dalam Proses Pelupusan</option>
-                                <option>Sewaan</option>
-                            </select>
-                        </div>
+                            <div class="mb-3">
+                                <label>Tarikh kemaskini (Auto)</label>
+                                <input type="text" class="form-control" value="Akan dijana oleh sistem..." disabled>
+                            </div>
 
-                        <div class="mb-3">
-                            <label>Nama pengguna sebelumnya</label>
-                            <input type="text" id="inp-prevUser" class="form-control">
-                        </div>
-
-                        <div class="mb-3">
-                            <label>Tarikh kemaskini (Auto)</label>
-                            <input type="text" class="form-control" value="Akan dijana oleh sistem..." disabled>
-                        </div>
-
-                        <button type="submit" class="btn btn-success">Simpan</button>
-                        <button type="button" onclick="showDashboard()" class="btn btn-secondary">Batal</button>
-                    </form>
+                            <div class="d-flex gap-2">
+                                <button type="submit" class="btn btn-success">Simpan</button>
+                                <button type="button" onclick="showDashboard()" class="btn btn-secondary">Batal</button>
+                            </div>
+                        </form>
+                    </div>
                 </div>
             </div>
         </div>
@@ -171,9 +198,10 @@
 
     <script>
         // --- CONFIGURATION ---
-        const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbysP6KA8QDS4aDYmhsVOPnLaFNnKY6mbazaChTQBK9mLMoO9svRKcC16okfn5D6s8v1_Q/exec"; // <--- PASTE URL HERE
+        const SCRIPT_URL = "194UdPqt6p2o0DJdJtuP8_UacggRIR6xvFqY709JAnSY"; // <--- REMEMBER TO PASTE URL HERE
         
         let allData = [];
+        let filteredData = [];
         let showAllRows = false;
         let currentUser = "";
 
@@ -182,8 +210,8 @@
             const u = document.getElementById('login-user').value;
             const p = document.getElementById('login-pass').value;
 
-            // Simple client-side check (NOT SECURE for sensitive data)
-            if(u == "suhardi" && p == "stmadmin2026") {
+            // CHANGE USERNAME/PASSWORD HERE
+            if(u == "admin" && p == "stmadmin2026") {
                 currentUser = u;
                 document.getElementById('login-page').classList.add('hidden');
                 document.getElementById('dashboard-page').classList.remove('hidden');
@@ -204,6 +232,7 @@
                 .then(res => res.json())
                 .then(data => {
                     allData = data;
+                    filteredData = data; // Initialize filtered with all data
                     renderTable();
                     document.getElementById('loader').classList.add('hidden');
                 })
@@ -213,13 +242,51 @@
                 });
         }
 
+        // --- SEARCH LOGIC (NEW) ---
+        function handleSearch() {
+            const query = document.getElementById('search-input').value.toLowerCase();
+            
+            if (query === "") {
+                filteredData = allData;
+            } else {
+                filteredData = allData.filter(row => {
+                    // Search in all columns
+                    return Object.values(row).some(val => 
+                        String(val).toLowerCase().includes(query)
+                    );
+                });
+            }
+            renderTable();
+        }
+
         // --- RENDER TABLE ---
         function renderTable() {
             const tbody = document.getElementById('data-table-body');
             tbody.innerHTML = "";
             
-            // Logic: Show 5 or All
-            const displayData = showAllRows ? allData : allData.slice(0, 5);
+            const isSearching = document.getElementById('search-input').value !== "";
+            
+            // Logic: 
+            // 1. If searching, show all matching results (ignore limit).
+            // 2. If not searching, obey 'showAllRows' (either 5 or All).
+            let displayData;
+            
+            if (isSearching) {
+                displayData = filteredData;
+                document.getElementById('btn-show-all').style.display = 'none'; // Hide button when searching
+            } else {
+                displayData = showAllRows ? filteredData : filteredData.slice(0, 5);
+                document.getElementById('btn-show-all').style.display = 'block'; // Show button
+                document.getElementById('btn-show-all').innerText = showAllRows ? "Show Less (5 Rows)" : "Show All Rows";
+            }
+
+            // Update Count Text
+            document.getElementById('record-count').innerText = `Showing ${displayData.length} of ${filteredData.length} records`;
+
+            if (displayData.length === 0) {
+                tbody.innerHTML = "<tr><td colspan='11' class='text-center'>Tiada rekod dijumpai.</td></tr>";
+                return;
+            }
 
             displayData.forEach(row => {
                 const tr = document.createElement('tr');
@@ -231,19 +298,24 @@
                     <td>${row['Nombor DHM']}</td>
                     <td>${row['Nombor Siri']}</td>
                     <td>${row['Jenis Model']}</td>
-                    <td>${row['Status']}</td>
+                    <td>
+                        <span class="badge ${getStatusBadge(row['Status'])}">${row['Status']}</span>
+                    </td>
                     <td>${row['Nama pengguna sebelumnya']}</td>
                     <td>${row['Tarikh kemaskini']}</td>
                     <td>
-                        <button class="btn btn-sm btn-warning" onclick="showEditForm(${row['Bil']})">Edit</button>
+                        <button class="btn btn-sm btn-warning" onclick="showEditForm(${row['Bil']})">✏️</button>
                     </td>
                 `;
                 tbody.appendChild(tr);
             });
+        }
 
-            // Update Button Text
-            const btn = document.getElementById('btn-show-all');
-            btn.innerText = showAllRows ? "Show Less (5 Rows)" : "Show All Rows";
+        function getStatusBadge(status) {
+            if(status === 'Baharu') return 'bg-success';
+            if(status === 'Perlu Dibaiki') return 'bg-danger';
+            if(status === 'Dalam Proses Pelupusan') return 'bg-dark';
+            return 'bg-secondary';
         }
 
         function toggleShowAll() {
@@ -260,7 +332,7 @@
         function showAddForm() {
             document.getElementById('form-title').innerText = "Tambah Aset Baharu";
             document.getElementById('asset-form').reset();
-            document.getElementById('asset-id').value = ""; // Empty ID means New
+            document.getElementById('asset-id').value = ""; 
             
             document.getElementById('dashboard-page').classList.add('hidden');
             document.getElementById('form-page').classList.remove('hidden');
@@ -272,7 +344,6 @@
 
             document.getElementById('form-title').innerText = "Kemaskini Rekod (ID: " + id + ")";
             
-            // Populate fields
             document.getElementById('asset-id').value = row['Bil'];
             document.getElementById('inp-nama').value = row['Nama Pengguna'];
             document.getElementById('inp-jenis').value = row['Jenis-jenis Aset ICT'];
@@ -308,7 +379,6 @@
                 editor: currentUser
             };
 
-            // Use fetch with 'no-cors' workaround specifically for GAS or standard post
             fetch(SCRIPT_URL, {
                 method: 'POST',
                 body: JSON.stringify(payload)
@@ -316,11 +386,12 @@
             .then(response => response.json())
             .then(data => {
                 alert("Data berjaya disimpan!");
-                fetchData(); // Reload data
+                // Reload data to see changes
+                fetchData(); 
+                document.getElementById('search-input').value = ""; // Clear search
                 showDashboard();
             })
             .catch(error => {
-                // GAS sometimes returns opaque response, assume success if no network error
                 console.error(error);
                 alert("Permintaan dihantar. Sila refresh jika data tidak berubah.");
                 fetchData();
