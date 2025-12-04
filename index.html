@@ -270,21 +270,31 @@
         }
 
         // --- DATA FETCHING ---
-        function fetchData() {
-            document.getElementById('loader').classList.remove('hidden');
-            fetch(SCRIPT_URL)
-                .then(res => res.json())
-                .then(data => {
-                    allData = data;
-                    filteredData = data; 
-                    renderTable();
-                    document.getElementById('loader').classList.add('hidden');
-                })
-                .catch(err => {
-                    alert("Error loading data: " + err);
-                    document.getElementById('loader').classList.add('hidden');
-                });
-        }
+// REPLACE YOUR EXISTING fetchData() WITH THIS FOR DEBUGGING
+function fetchData() {
+    document.getElementById('loader').classList.remove('hidden');
+    
+    fetch(SCRIPT_URL)
+        .then(res => res.text()) // Changed from .json() to .text() to see the raw error
+        .then(text => {
+            console.log("RAW RESPONSE:", text); // Check Console (F12) to see this
+            try {
+                const data = JSON.parse(text); // Try to parse it manually
+                allData = data;
+                filteredData = data;
+                renderTable();
+                document.getElementById('loader').classList.add('hidden');
+            } catch (e) {
+                alert("Error: Script did not return JSON. It returned: " + text.substring(0, 100));
+                console.error("Parse Error:", e);
+                document.getElementById('loader').classList.add('hidden');
+            }
+        })
+        .catch(err => {
+            alert("Network Error: " + err);
+            document.getElementById('loader').classList.add('hidden');
+        });
+}
 
         // --- SEARCH LOGIC ---
         function handleSearch() {
