@@ -4,62 +4,84 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Sistem Pengurusan Aset ICT</title>
+    <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
+        :root {
+            --table-font-size: 0.9rem; /* Default Font Size */
+        }
+
         body { background-color: #f0f2f5; font-size: 0.9rem; }
         
-        /* FULL WIDTH CONTAINER */
-        .container-fluid { padding: 20px; }
+        /* Default Container */
+        .container-fluid { padding: 20px; transition: all 0.3s ease; }
         
+        /* MAX MODE: 100% Width, No Padding */
+        .container-max {
+            max-width: 100% !important;
+            width: 100% !important;
+            padding: 5px !important;
+            margin: 0 !important;
+        }
+
         .hidden { display: none !important; }
         .card { box-shadow: 0 4px 6px rgba(0,0,0,0.1); border: none; }
         
         /* LOADING SPINNER */
         .loading { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); z-index: 9999; display: flex; justify-content: center; align-items: center; }
 
-        /* --- TABLE FIXES --- */
+        /* --- TABLE STYLING --- */
         .table-responsive {
-            max-height: 70vh; /* Set height so vertical scroll works */
+            max-height: 75vh;
             overflow-y: auto;
             border: 1px solid #ddd;
         }
 
-        /* Sticky Header: Keeps header visible while scrolling down */
+        /* Dynamic Font Size applied here */
+        .dynamic-font-table th, 
+        .dynamic-font-table td {
+            font-size: var(--table-font-size) !important;
+            vertical-align: middle;
+            transition: font-size 0.2s ease;
+        }
+
         thead th {
             position: sticky;
             top: 0;
-            background-color: #212529 !important; /* Dark header color */
+            background-color: #212529 !important;
             color: white;
             z-index: 1;
-            white-space: nowrap; /* Keep headers on one line */
+            white-space: nowrap;
         }
 
-        /* Column Formatting */
-        td { vertical-align: middle; }
-        
-        /* Allow these columns to WRAP text so it's not cut off */
+        /* Normal Mode: Wrap long text */
         .col-wrap {
             white-space: normal !important;
-            min-width: 150px; /* Force minimum width to be readable */
+            min-width: 150px;
             max-width: 250px;
         }
 
-        /* Keep these columns on ONE LINE */
-        .col-nowrap {
-            white-space: nowrap;
+        /* Max Mode: Force No Wrap on EVERYTHING */
+        .force-nowrap th, 
+        .force-nowrap td {
+            white-space: nowrap !important;
+            max-width: none !important;
         }
     </style>
 </head>
 <body>
 
+    <!-- LOADING SPINNER -->
     <div id="loader" class="loading hidden">
         <div class="spinner-border text-primary" role="status">
             <span class="visually-hidden">Loading...</span>
         </div>
     </div>
 
-    <div class="container-fluid">
+    <!-- Main Container -->
+    <div id="main-container" class="container-fluid">
 
+        <!-- 1. LOGIN PAGE -->
         <div id="login-page" class="row justify-content-center">
             <div class="col-md-4">
                 <div class="card mt-5">
@@ -85,12 +107,21 @@
             </div>
         </div>
 
+        <!-- 2. DASHBOARD PAGE -->
         <div id="dashboard-page" class="hidden">
             <div class="d-flex justify-content-between align-items-center mb-3">
                 <h3 class="text-primary">Dashboard Aset</h3>
-                <div class="d-flex gap-2 align-items-center">
+                
+                <!-- NEW: ZOOM & MAX CONTROLS -->
+                <div class="btn-group shadow-sm">
+                    <button class="btn btn-light border" onclick="changeFontSize(-0.1)" title="Decrease Font">➖</button>
+                    <button class="btn btn-light border" onclick="changeFontSize(0.1)" title="Increase Font">➕</button>
+                    <button class="btn btn-dark" onclick="toggleMaxMode()" id="btn-max" title="Full Width No Wrap">⤢ Max</button>
+                </div>
+
+                <div class="d-flex gap-2 align-items-center ms-3">
                     <span class="badge bg-info text-dark">User: <span id="display-username"></span></span>
-                    <button onclick="showAddForm()" class="btn btn-success btn-sm">+ Tambah Aset</button>
+                    <button onclick="showAddForm()" class="btn btn-success btn-sm">+ Tambah</button>
                     <button onclick="logout()" class="btn btn-secondary btn-sm">Logout</button>
                 </div>
             </div>
@@ -111,8 +142,9 @@
                 </div>
                 
                 <div class="card-body p-0">
+                    <!-- Table Container -->
                     <div class="table-responsive">
-                        <table class="table table-bordered table-hover table-sm mb-0">
+                        <table id="main-table" class="table table-bordered table-hover table-sm mb-0 dynamic-font-table">
                             <thead>
                                 <tr>
                                     <th>Bil</th>
@@ -129,7 +161,8 @@
                                 </tr>
                             </thead>
                             <tbody id="data-table-body">
-                                </tbody>
+                                <!-- Data rows go here -->
+                            </tbody>
                         </table>
                     </div>
                 </div>
@@ -139,6 +172,7 @@
             </div>
         </div>
 
+        <!-- 3. UPDATE/ADD RECORD PAGE -->
         <div id="form-page" class="hidden">
             <div class="row justify-content-center">
                 <div class="col-lg-8">
@@ -233,6 +267,7 @@
 
     </div>
 
+    <!-- JAVASCRIPT LOGIC -->
     <script>
         // --- CONFIGURATION ---
         const SCRIPT_URL = "https://script.google.com/macros/s/AKfycbysP6KA8QDS4aDYmhsVOPnLaFNnKY6mbazaChTQBK9mLMoO9svRKcC16okfn5D6s8v1_Q/exec"; 
@@ -241,20 +276,62 @@
         let filteredData = [];
         let showAllRows = false;
         let currentUser = "";
+        
+        // --- ZOOM & MAX VARIABLES ---
+        let currentFontSize = 0.9;
+        let isMaxMode = false;
 
-        // --- 1. MULTI-USER CONFIGURATION ---
         const authorizedUsers = {
-            "suhardi": "810107",
-            "jefrisani": "abcd1234"
+            "admin": "1234",
+            "ali": "abcd"
         };
+
+        // --- NEW: ZOOM & MAX FUNCTIONS ---
+        function changeFontSize(delta) {
+            currentFontSize += delta;
+            // Limits: Min 0.5rem, Max 2.0rem
+            if (currentFontSize < 0.5) currentFontSize = 0.5;
+            if (currentFontSize > 2.0) currentFontSize = 2.0;
+            
+            // Apply to CSS Variable
+            document.documentElement.style.setProperty('--table-font-size', currentFontSize.toFixed(1) + 'rem');
+        }
+
+        function toggleMaxMode() {
+            isMaxMode = !isMaxMode;
+            const container = document.getElementById('main-container');
+            const table = document.getElementById('main-table');
+            const btn = document.getElementById('btn-max');
+
+            if (isMaxMode) {
+                // Activate Max Mode
+                container.classList.add('container-max');
+                table.classList.add('force-nowrap');
+                
+                // Auto-shrink font to fit more data
+                currentFontSize = 0.7; 
+                document.documentElement.style.setProperty('--table-font-size', '0.7rem');
+                
+                btn.classList.replace('btn-dark', 'btn-success'); // Change button color
+            } else {
+                // Revert to Normal Mode
+                container.classList.remove('container-max');
+                table.classList.remove('force-nowrap');
+                
+                // Restore default font
+                currentFontSize = 0.9;
+                document.documentElement.style.setProperty('--table-font-size', '0.9rem');
+
+                btn.classList.replace('btn-success', 'btn-dark');
+            }
+        }
 
         // --- LOGIN LOGIC ---
         function handleLogin() {
             const u = document.getElementById('login-user').value.trim();
             const p = document.getElementById('login-pass').value.trim();
 
-            // Check if user exists in the list and password matches
-            if (authorizedUsers.hasOwnProperty(u) && authorizedUsers[u] == p) {
+            if (authorizedUsers.hasOwnProperty(u) && authorizedUsers[u] === p) {
                 currentUser = u;
                 document.getElementById('display-username').innerText = u;
                 document.getElementById('login-page').classList.add('hidden');
@@ -270,31 +347,29 @@
         }
 
         // --- DATA FETCHING ---
-// REPLACE YOUR EXISTING fetchData() WITH THIS FOR DEBUGGING
-function fetchData() {
-    document.getElementById('loader').classList.remove('hidden');
-    
-    fetch(SCRIPT_URL)
-        .then(res => res.text()) // Changed from .json() to .text() to see the raw error
-        .then(text => {
-            console.log("RAW RESPONSE:", text); // Check Console (F12) to see this
-            try {
-                const data = JSON.parse(text); // Try to parse it manually
-                allData = data;
-                filteredData = data;
-                renderTable();
-                document.getElementById('loader').classList.add('hidden');
-            } catch (e) {
-                alert("Error: Script did not return JSON. It returned: " + text.substring(0, 100));
-                console.error("Parse Error:", e);
-                document.getElementById('loader').classList.add('hidden');
-            }
-        })
-        .catch(err => {
-            alert("Network Error: " + err);
-            document.getElementById('loader').classList.add('hidden');
-        });
-}
+        function fetchData() {
+            document.getElementById('loader').classList.remove('hidden');
+            
+            fetch(SCRIPT_URL)
+                .then(res => res.text())
+                .then(text => {
+                    try {
+                        const data = JSON.parse(text);
+                        allData = data;
+                        filteredData = data;
+                        renderTable();
+                        document.getElementById('loader').classList.add('hidden');
+                    } catch (e) {
+                        alert("Error: Data returned is not valid JSON. Check permissions.");
+                        console.error("Raw Response:", text);
+                        document.getElementById('loader').classList.add('hidden');
+                    }
+                })
+                .catch(err => {
+                    alert("Network Error: " + err);
+                    document.getElementById('loader').classList.add('hidden');
+                });
+        }
 
         // --- SEARCH LOGIC ---
         function handleSearch() {
@@ -309,7 +384,6 @@ function fetchData() {
                     );
                 });
             }
-            // Reset to show all found results immediately
             showAllRows = true; 
             renderTable();
         }
@@ -320,9 +394,8 @@ function fetchData() {
             tbody.innerHTML = "";
             
             const isSearching = document.getElementById('search-input').value !== "";
-            
-            // Logic: Show 5 rows default, unless Searching OR 'Show All' clicked
             let displayData;
+            
             if (isSearching) {
                 displayData = filteredData;
                 document.getElementById('btn-show-all').style.display = 'none';
@@ -342,19 +415,19 @@ function fetchData() {
             displayData.forEach(row => {
                 const tr = document.createElement('tr');
                 tr.innerHTML = `
-                    <td class="col-nowrap fw-bold">${row['Bil']}</td>
+                    <td class="fw-bold">${row['Bil']}</td>
                     <td class="col-wrap">${row['Nama Pengguna']}</td>
                     <td class="col-wrap">${row['Jenis-jenis Aset ICT']}</td>
                     <td class="col-wrap">${row['Seksyen']}</td>
-                    <td class="col-nowrap">${row['Nombor DHM']}</td>
-                    <td class="col-nowrap">${row['Nombor Siri']}</td>
+                    <td>${row['Nombor DHM']}</td>
+                    <td>${row['Nombor Siri']}</td>
                     <td class="col-wrap">${row['Jenis Model']}</td>
-                    <td class="col-nowrap">
+                    <td>
                         <span class="badge ${getStatusBadge(row['Status'])}">${row['Status']}</span>
                     </td>
                     <td class="col-wrap text-muted">${row['Nama pengguna sebelumnya']}</td>
-                    <td class="col-nowrap small">${row['Tarikh kemaskini']}</td>
-                    <td class="col-nowrap text-center">
+                    <td class="small">${row['Tarikh kemaskini']}</td>
+                    <td class="text-center">
                         <button class="btn btn-sm btn-outline-dark" onclick="showEditForm(${row['Bil']})">Edit</button>
                     </td>
                 `;
